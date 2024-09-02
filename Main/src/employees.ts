@@ -2,9 +2,9 @@ class Employee {
     firstName: string;
     lastName: string;
     role: string;
-    manager: string;
+    manager?: string;
 
-    constructor(firstName: string, lastName: string, role: string, manager: string) {
+    constructor(firstName: string, lastName: string, role: string, manager?: string) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.role = role;
@@ -13,3 +13,4 @@ class Employee {
 }
 
 export default Employee;
+
