@@ -2,11 +2,11 @@ import inquirer from "inquirer";
 import { QueryResult } from 'pg';
 import { pool, connectToDb } from './connection.js';
 
-await connectToDb();
-
 import Employee from "./employees.js";
 import Role from "./roles.js";
 import Department from "./departments.js";
+
+await connectToDb();
 
 const startQuestions = [
     'View All Employees',
@@ -191,21 +191,23 @@ class Cli {
                 type: 'list',
                 name: 'employeeName',
                 message: updateEmployeeRoleQuestions[0],
-                choices: this.employees,
+                choices: [...this.employees.map(employee => employee.firstName)],
             },
             {
-                type: 'input',
+                type: 'list',
                 name: 'role',
                 message: updateEmployeeRoleQuestions[1],
+                choices: [...this.roles.map(role => role.name)],
             }
         ])
         .then((answers: any) => {
-            pool.query(`UPDATE employee SET role = '${answers.role}' WHERE first_name = '${answers.employeeName}'`, 
+            const roleIndex = this.roles.findIndex(role => role.name === answers.role)+1;
+            pool.query(`UPDATE employee SET role_id = ${roleIndex} WHERE first_name = '${answers.employeeName}';`, 
                 (err: Error, res: QueryResult) => {
                     if (err) {
                         console.error(err);
                     } else if (res) {
-                        console.log(res)
+                        console.log(`Employee ${answers.employeeName}'s role has been updated to ${answers.role}!`)
                     }
                 });
             this.startCli();
@@ -243,18 +245,24 @@ class Cli {
                 message: addRoleQuestions[1],
             },
             {
-                type: 'input',
+                type: 'list',
                 name: 'roleDepartment',
                 message: addRoleQuestions[2],
+                choices: [...this.departments.map(department => department.name)],
             }
         ])
         .then((answers: any) => {
-            pool.query(`INSERT INTO role (title, salary, department) VALUES ('${answers.roleName}', '${answers.roleSalary}', '${answers.roleDepartment}')`, 
+
+            const departmentIndex = this.departments.findIndex(department => department.name === answers.roleDepartment)+1;
+            const role = new Role(answers.roleName, answers.roleSalary, departmentIndex);
+            
+            pool.query(`INSERT INTO role (title, salary, department) VALUES ('${answers.roleName}', ${answers.roleSalary}, ${departmentIndex});`, 
                 (err: Error, res: QueryResult) => {
                     if (err) {
                         console.error(err);
                     } else if (res) {
-                        console.log(res)
+                        console.log(`Role ${answers.roleName} added successfully!`);
+                        this.roles.push(role);
                     }
                 });
             this.startCli();
@@ -268,6 +276,7 @@ class Cli {
             } else if (res) {
                 console.table(res.rows);
             }
+            this.startCli();
         });
     };
 
@@ -280,12 +289,15 @@ class Cli {
             }
         ])
         .then((answers: any) => {
-            pool.query(`INSERT INTO department (name) VALUES ('${answers.departmentName}')`, 
+            const department = new Department(answers.departmentName);
+
+            pool.query(`INSERT INTO department (name) VALUES ('${answers.departmentName}');`, 
                 (err: Error, res: QueryResult) => {
                     if (err) {
                         console.error(err);
                     } else if (res) {
-                        console.log(res)
+                        console.log(`Department ${answers.departmentName} added successfully!`);
+                        this.departments.push(department);
                     }
                 });
             this.startCli();
