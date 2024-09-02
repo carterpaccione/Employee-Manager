@@ -44,21 +44,22 @@ const updateEmployeeRoleQuestions = [
 class Cli {
 
     employees: Employee[] = [
-        new Employee ('Alice', 'Johnson', 'Engineer'),
-        new Employee ('Bob', 'Smith', 'Accountant'),
-        new Employee ('Charlie', 'Brown', 'Lawyer'),
-        new Employee ('David', 'White', 'Salesperson')
+        new Employee ('Alice', 'Johnson', 1),
+        new Employee ('Bob', 'Smith', 2),
+        new Employee ('Charlie', 'Brown', 3),
+        new Employee ('David', 'White', 4)
     ];
 
     roles: Role[] = [
-        new Role('Engineer', 100000, 'Engineering'), 
-        new Role('Accountant', 80000, 'Finance'), 
-        new Role('Lawyer', 120000, 'Legal'), 
-        new Role('Salesperson', 70000, 'Sales')
+        new Role('Software Engineer', 100000, 1), 
+        new Role('Accountant', 80000, 2), 
+        new Role('Lawyer', 120000, 3), 
+        new Role('Salesperson', 60000, 4)
     ];
     departments: Department[] = [
-        new Department('Engineering'), 
-        new Department('Finance'), new Department('Legal'), 
+        new Department('Engineering'),
+        new Department('Finance'), 
+        new Department('Legal'), 
         new Department('Sales')
     ];
 
@@ -92,18 +93,25 @@ class Cli {
         });
     };
 
-    viewAllEmployees(): void {
-        pool.query('SELECT * FROM employee', (err: Error, res: QueryResult) => {
-            if (err) {
-                console.error(err);
-            } else if (res) {
-                console.log(res.rows);
-            }
-        });
+    async viewAllEmployees(): Promise<void> {
+        try {
+            const res: QueryResult = await new Promise((resolve, reject) => {
+                pool.query('SELECT * FROM employee', (err: Error, res: QueryResult) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(res);
+                    }
+                });
+            });
+            console.table(res.rows);
+        } catch (err) {
+            console.error(err);
+        }
         this.startCli();
     };
 
-    addEmployee(): void{
+    async addEmployee(): Promise<void>{
         inquirer.prompt([
             {
                 type: 'input',
@@ -125,22 +133,55 @@ class Cli {
                 type: 'list',
                 name: 'manager',
                 message: addEmployeeQuestions[3],
-                choices: this.employees.map(employee => employee.firstName),
+                choices: ['None', ...this.employees.map(employee => employee.firstName)],
             }
         ])
         .then((answers: any) => {
-            const employee = new Employee(answers.firstName, answers.lastName, answers.role, answers.manager);
-            this.employees.push(employee);
+            if(answers.manager === 'None') {
+                answers.manager = null;
+                answers.role = this.roles.findIndex(role => role.name === answers.role)+1;
+                const employee = new Employee(answers.firstName, answers.lastName, answers.role, answers.manager);
+                this.employees.push(employee);
+                
+                try {
+                    pool.query(
+                    `INSERT INTO employee(first_name, last_name, role_id, manager_id)
+                    VALUES
+                    ('${employee.firstName}', '${employee.lastName}', ${employee.role}, ${employee.manager});`, 
+                    (err: Error, res: QueryResult) => {
+                        if (err) {
+                            console.error(err);
+                        } else if (res) {
+                            console.log(`Employee ${employee.firstName} ${employee.lastName} added successfully!`)
+                        }
+                    });
+                } catch(err) {
+                    console.error(err);
+                }
+                this.startCli();
+            } else {
+                answers.role = this.roles.findIndex(role => role.name === answers.role)+1;
+                answers.manager = this.employees.findIndex(employee => employee.firstName === answers.manager)+1;
+                const employee = new Employee(answers.firstName, answers.lastName, answers.role, answers.manager);
+                this.employees.push(employee);
 
-            pool.query(`INSERT INTO employee (first_name, last_name, role, manager) VALUES ('${answers.firstName}', '${answers.lastName}', '${answers.role}', '${answers.manager}')`, 
-                (err: Error, res: QueryResult) => {
-                    if (err) {
-                        console.error(err);
-                    } else if (res) {
-                        console.log(res)
-                    }
-                });
-            this.startCli();
+               try{
+                pool.query(
+                    `INSERT INTO employee(first_name, last_name, role_id, manager_id)
+                    VALUES
+                    ('${employee.firstName}', '${employee.lastName}', ${employee.role}, ${employee.manager})`, 
+                    (err: Error, res: QueryResult) => {
+                        if (err) {
+                            console.error(err);
+                        } else if (res) {
+                            console.log(`Employee ${employee.firstName} ${employee.lastName} added successfully!`)
+                        }
+                    });
+                } catch(err) {
+                console.log(err);
+                }
+                this.startCli();
+            }
         });
     };
 
@@ -171,14 +212,22 @@ class Cli {
         });
     };
 
-    viewAllRoles(): void {
-        pool.query('SELECT * FROM role', (err: Error, res: QueryResult) => {
-            if (err) {
-                console.error(err);
-            } else if (res) {
-                console.table(res.rows);
-            }
-        });
+    async viewAllRoles(): Promise<void> {
+        try {
+            const res: QueryResult = await new Promise((resolve, reject) => {
+                pool.query('SELECT * FROM role', (err: Error, res: QueryResult) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(res);
+                    }
+                });
+            });
+            console.table(res.rows);
+        } catch (err) {
+            console.error(err);
+        }
+        this.startCli();
     };
 
     addRole(): void {

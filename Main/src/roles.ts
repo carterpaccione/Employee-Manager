@@ -1,9 +1,9 @@
 class Role {
     name: string;
     salary: number;
-    department: string;
+    department: number;
 
-    constructor(name: string, salary: number, department: string) {
+    constructor(name: string, salary: number, department: number) {
         this.name = name;
         this.salary = salary;
         this.department = department;
