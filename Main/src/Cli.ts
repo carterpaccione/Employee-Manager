@@ -43,27 +43,93 @@ const updateEmployeeRoleQuestions = [
 
 class Cli {
 
-    employees: Employee[] = [
-        new Employee ('Alice', 'Johnson', 1),
-        new Employee ('Bob', 'Smith', 2),
-        new Employee ('Charlie', 'Brown', 3),
-        new Employee ('David', 'White', 4)
-    ];
+    employees: Employee[] = [];
 
-    roles: Role[] = [
-        new Role('Software Engineer', 100000, 1), 
-        new Role('Accountant', 80000, 2), 
-        new Role('Lawyer', 120000, 3), 
-        new Role('Salesperson', 60000, 4)
-    ];
-    departments: Department[] = [
-        new Department('Engineering'),
-        new Department('Finance'), 
-        new Department('Legal'), 
-        new Department('Sales')
-    ];
+    roles: Role[] = [];
 
-    startCli(): void {
+    departments: Department[] = [];
+
+    constructor() {
+        this.getEmployees();
+        this.getRoles();
+        this.getDepartments();
+    }
+
+    async getEmployees() {
+        try {
+            const res: QueryResult = await new Promise((resolve, reject) => {
+                pool.query('SELECT * FROM employee', (err: Error, res: QueryResult) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(res);
+                    }
+                });
+            });
+            // this.employees = res.rows;
+            this. employees = [];
+            res.rows.forEach((employee: Employee) => {
+                const update = new Employee(employee.id, employee.first_name, employee.last_name, employee.role_id, employee.manager_id);
+                this.employees.push(update);
+            });
+            // console.log(this.employees);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    async getRoles() {
+        try {
+            const res: QueryResult = await new Promise((resolve, reject) => {
+                pool.query('SELECT * FROM role', (err: Error, res: QueryResult) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(res);
+                    }
+                });
+            });
+            // this.roles = res.rows;
+            this.roles = [];
+            res.rows.forEach((role: Role) => {
+                const update = new Role(role.id, role.title, role.salary, role.department);
+                this.roles.push(update);
+            });
+            // console.log(this.roles);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    async getDepartments() {
+        try {
+            const res: QueryResult = await new Promise((resolve, reject) => {
+                pool.query('SELECT * FROM department', (err: Error, res: QueryResult) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(res);
+                    }
+                });
+            });
+            // this.departments = res.rows;
+            this.departments = [];
+            res.rows.forEach((department: Department) => {
+                const update = new Department(department.id, department.name);
+                this.departments.push(update);
+            });
+            // console.log(this.departments);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    async startCli(): Promise<void> {
+        
+        await this.getRoles();
+        await this.getEmployees();
+        await this.getDepartments();
+
         inquirer.prompt([
             {
                 type: 'list',
@@ -115,44 +181,42 @@ class Cli {
         inquirer.prompt([
             {
                 type: 'input',
-                name: 'firstName',
+                name: 'first_name',
                 message: addEmployeeQuestions[0],
             },
             {
                 type: 'input',
-                name: 'lastName',
+                name: 'last_name',
                 message: addEmployeeQuestions[1],
             },
             {
                 type: 'list',
-                name: 'role',
+                name: 'role_id',
                 message: addEmployeeQuestions[2],
-                choices: this.roles.map(role => role.name),
+                choices: this.roles.map(role => role.title),
             },
             {
                 type: 'list',
-                name: 'manager',
+                name: 'manager_id',
                 message: addEmployeeQuestions[3],
-                choices: ['None', ...this.employees.map(employee => employee.firstName)],
+                choices: ['None', ...this.employees.map(employee => employee.first_name)],
             }
         ])
         .then((answers: any) => {
-            if(answers.manager === 'None') {
-                answers.manager = null;
-                answers.role = this.roles.findIndex(role => role.name === answers.role)+1;
-                const employee = new Employee(answers.firstName, answers.lastName, answers.role, answers.manager);
-                this.employees.push(employee);
+            if(answers.manager_id === 'None') {
+                answers.manager_id = null;
+                answers.role_id = this.roles.findIndex(role => role.title === answers.role_id)+1;
                 
                 try {
                     pool.query(
                     `INSERT INTO employee(first_name, last_name, role_id, manager_id)
                     VALUES
-                    ('${employee.firstName}', '${employee.lastName}', ${employee.role}, ${employee.manager});`, 
+                    ('${answers.first_name}', '${answers.last_name}', ${answers.role_id}, ${answers.manager_id});`, 
                     (err: Error, res: QueryResult) => {
                         if (err) {
                             console.error(err);
                         } else if (res) {
-                            console.log(`Employee ${employee.firstName} ${employee.lastName} added successfully!`)
+                            console.log(`Employee ${answers.first_name} ${answers.last_name} added successfully!`)
                         }
                     });
                 } catch(err) {
@@ -160,21 +224,19 @@ class Cli {
                 }
                 this.startCli();
             } else {
-                answers.role = this.roles.findIndex(role => role.name === answers.role)+1;
-                answers.manager = this.employees.findIndex(employee => employee.firstName === answers.manager)+1;
-                const employee = new Employee(answers.firstName, answers.lastName, answers.role, answers.manager);
-                this.employees.push(employee);
+                answers.role_id = this.roles.findIndex(role => role.title === answers.role_id)+1;
+                answers.manager_id = this.employees.findIndex(employee => employee.first_name === answers.manager_id)+1;
 
                try{
                 pool.query(
                     `INSERT INTO employee(first_name, last_name, role_id, manager_id)
                     VALUES
-                    ('${employee.firstName}', '${employee.lastName}', ${employee.role}, ${employee.manager})`, 
+                    ('${answers.first_name}', '${answers.last_name}', ${answers.role_id}, ${answers.manager_id})`, 
                     (err: Error, res: QueryResult) => {
                         if (err) {
                             console.error(err);
                         } else if (res) {
-                            console.log(`Employee ${employee.firstName} ${employee.lastName} added successfully!`)
+                            console.log(`Employee ${answers.first_name} ${answers.last_name} added successfully!`)
                         }
                     });
                 } catch(err) {
@@ -191,17 +253,17 @@ class Cli {
                 type: 'list',
                 name: 'employeeName',
                 message: updateEmployeeRoleQuestions[0],
-                choices: [...this.employees.map(employee => employee.firstName)],
+                choices: [...this.employees.map(employee => employee.first_name)],
             },
             {
                 type: 'list',
                 name: 'role',
                 message: updateEmployeeRoleQuestions[1],
-                choices: [...this.roles.map(role => role.name)],
+                choices: [...this.roles.map(role => role.title)],
             }
         ])
         .then((answers: any) => {
-            const roleIndex = this.roles.findIndex(role => role.name === answers.role)+1;
+            const roleIndex = this.roles.findIndex(role => role.title === answers.role)+1;
             pool.query(`UPDATE employee SET role_id = ${roleIndex} WHERE first_name = '${answers.employeeName}';`, 
                 (err: Error, res: QueryResult) => {
                     if (err) {
@@ -254,7 +316,6 @@ class Cli {
         .then((answers: any) => {
 
             const departmentIndex = this.departments.findIndex(department => department.name === answers.roleDepartment)+1;
-            const role = new Role(answers.roleName, answers.roleSalary, departmentIndex);
             
             pool.query(`INSERT INTO role (title, salary, department) VALUES ('${answers.roleName}', ${answers.roleSalary}, ${departmentIndex});`, 
                 (err: Error, res: QueryResult) => {
@@ -262,7 +323,6 @@ class Cli {
                         console.error(err);
                     } else if (res) {
                         console.log(`Role ${answers.roleName} added successfully!`);
-                        this.roles.push(role);
                     }
                 });
             this.startCli();
@@ -289,7 +349,6 @@ class Cli {
             }
         ])
         .then((answers: any) => {
-            const department = new Department(answers.departmentName);
 
             pool.query(`INSERT INTO department (name) VALUES ('${answers.departmentName}');`, 
                 (err: Error, res: QueryResult) => {
@@ -297,7 +356,6 @@ class Cli {
                         console.error(err);
                     } else if (res) {
                         console.log(`Department ${answers.departmentName} added successfully!`);
-                        this.departments.push(department);
                     }
                 });
             this.startCli();
