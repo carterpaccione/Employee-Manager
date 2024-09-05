@@ -24,10 +24,6 @@ DO $$
             ('Charlie', 'Brown', 3, null),
             ('David', 'White', 4, null);
 
-        INSERT INTO employee(first_name, last_name, role_id, manager_id)
-        VALUES
-            ('TestFirst', 'TestLast', 1, 1);
-
 RAISE NOTICE 'Seeds have been planted';
 
 EXCEPTION
