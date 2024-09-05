@@ -41,6 +41,12 @@ const updateEmployeeRoleQuestions = [
     'Which role do you want to assign the selected employee?',
 ];
 
+const queries = [
+    `SELECT e1.id, e1.first_name, e1.last_name, role.title, department.name AS department, role.salary, CONCAT(e2.first_name, ' ', e2.last_name) AS manager FROM employee e1 JOIN role ON e1.role_id = role.id JOIN department ON role.department = department.id LEFT JOIN employee e2 ON e1.manager_id = e2.id;`,
+    'SELECT role.id, role.title, role.salary, department.name AS department FROM role JOIN department ON role.department = department.id;',
+    'SELECT department.id AS id, department.name AS name FROM department;',
+]
+
 class Cli {
 
     employees: Employee[] = [];
@@ -104,7 +110,7 @@ class Cli {
     async getDepartments() {
         try {
             const res: QueryResult = await new Promise((resolve, reject) => {
-                pool.query('SELECT * FROM department', (err: Error, res: QueryResult) => {
+                pool.query(`SELECT * FROM department`, (err: Error, res: QueryResult) => {
                     if (err) {
                         reject(err);
                     } else {
@@ -162,7 +168,7 @@ class Cli {
     async viewAllEmployees(): Promise<void> {
         try {
             const res: QueryResult = await new Promise((resolve, reject) => {
-                pool.query('SELECT * FROM employee', (err: Error, res: QueryResult) => {
+                pool.query(`${queries[0]}`, (err: Error, res: QueryResult) => {
                     if (err) {
                         reject(err);
                     } else {
@@ -279,7 +285,7 @@ class Cli {
     async viewAllRoles(): Promise<void> {
         try {
             const res: QueryResult = await new Promise((resolve, reject) => {
-                pool.query('SELECT * FROM role', (err: Error, res: QueryResult) => {
+                pool.query(`${queries[1]}`, (err: Error, res: QueryResult) => {
                     if (err) {
                         reject(err);
                     } else {
@@ -330,7 +336,7 @@ class Cli {
     };
     
     viewAllDepartments(): void {
-        pool.query('SELECT * FROM department', (err: Error, res: QueryResult) => {
+        pool.query(`${queries[2]}`, (err: Error, res: QueryResult) => {
             if (err) {
                 console.error(err);
             } else if (res) {
